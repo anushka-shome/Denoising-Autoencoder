@@ -127,7 +127,7 @@ def train_model_nobatch(data: torch.Tensor, input_size: int, epochs=500):
     # loss_fn = nn.BCEWithLogitsLoss(reduction='sum')
     loss_fn = nn.MSELoss(reduction='sum')
     dataset = torch.utils.data.TensorDataset(data, data)  # input and target are the same
-    # dataloader = torch.utils.data.DataLoader(dataset, shuffle=True)
+    dataloader = torch.utils.data.DataLoader(dataset, shuffle=True)
 
     print(f'Begin training')
     output = net(data)
@@ -135,6 +135,7 @@ def train_model_nobatch(data: torch.Tensor, input_size: int, epochs=500):
     loss_min = loss_init
     loss_min_step = 0
     for epoch in range(epochs):
+        dataloader = torch.utils.data.DataLoader(dataset, shuffle=True)
         print(f"epoch: {epoch}", end='\t')
         epoch_loss = 0
 
@@ -154,6 +155,7 @@ def train_model_nobatch(data: torch.Tensor, input_size: int, epochs=500):
 
         print(f"Loss: {loss:8.1f}\t   min: {loss_min:8.1f}/{loss_min_step}\t{100 * loss_min / loss_init:.3f}%")
 
+    out = output.detach().numpy()
     return net.encoder(data).detach().numpy()
 
 
@@ -162,9 +164,12 @@ def main():
     data = torch.tensor(df.values, dtype=torch.float32)
     input_size = data.shape[1]
     hlayer_size = 4
-    encoded_data = train_model_nobatch(data, input_size, epochs=4000)
+    encoded_data = train_model_nobatch(data, input_size, epochs=1000)
     for i in range(len(encoded_data)):
-        print(f'{i}\t{encoded_data[i]}')
+        print(f'{i}',end='')
+        for value in encoded_data[i]:
+            print(f'\t{value:.4f}', end='')
+        print()
     # print(net)
     # print(losses)
 
