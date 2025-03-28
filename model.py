@@ -158,7 +158,7 @@ def train_model_nobatch(data: torch.Tensor, input_size: int, epochs=500):
 
 
 def main():
-    df = pd.read_csv("binary_data.csv", header=None).T
+    df = pd.read_csv("data/binary_data.csv", header=None).T
     data = torch.tensor(df.values, dtype=torch.float32)
     input_size = data.shape[1]
     hlayer_size = 4
