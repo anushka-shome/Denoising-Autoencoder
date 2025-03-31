@@ -164,7 +164,7 @@ def main():
     data = torch.tensor(df.values, dtype=torch.float32)
     input_size = data.shape[1]
     hlayer_size = 4
-    encoded_data = train_model_nobatch(data, input_size, epochs=1000)
+    encoded_data = train_model_nobatch(data, input_size, epochs=2000)
     for i in range(len(encoded_data)):
         print(f'{i}',end='')
         for value in encoded_data[i]:
