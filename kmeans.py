@@ -21,15 +21,24 @@ class Group:
         self.values = []
         self.centroid = []
 
-    def centroid(self):
+    def get_centroid(self):
         """-----------------------------------------------------------------------------------------
         calculate centroid position from values
 
         :return:
         -----------------------------------------------------------------------------------------"""
-        sum = []
+        n = len(self.values)
+        if n == 0:
+            self.centroid = [0.0 for _ in self.values[0]['value']]
+            return self.centroid
+
+        sum = [0.0 for _ in self.values[0]['value']]
         for v in self.values:
-            pass
+            for i in range(len(v['value'])):
+                sum[i] += v['value'][i] / n
+
+        self.centroid = sum
+        return sum
 
     def distance(self, point):
         """-----------------------------------------------------------------------------------------
@@ -41,7 +50,7 @@ class Group:
         d = 0.0
         c = self.centroid
         for i in range(len(c)):
-            d += c[i] - point[i]
+            d += abs(c[i] - point['value'][i])
 
         return d
 
@@ -51,7 +60,7 @@ class Group:
 # --------------------------------------------------------------------------------------------------
 if __name__ == '__main__':
 
-    k = 8
+    k = 7
     group = []
     for g in range(k):
         group.append(Group())
@@ -74,11 +83,36 @@ if __name__ == '__main__':
         g.centroid = data[pos]['value']
         pos += step
 
-    error = 1.0
-    delta = 0.0
-    while error > delta:
+    error_old = 10000000000000
+    delta = 1.0
+    cycle = 0
+    while delta > 0.001:
+        cycle += 1
+        print(f'\ncycle {cycle}')
+        error = 0
+
         # assign points to centroids
-        # recalculate centroids
-        # calculate error and delta
+        for d in data:
+            mindist = 10000
+            mingroup = group[0]
+            for g in group:
+                dist = g.distance(d)
+                if dist < mindist:
+                    mindist = dist
+                    mingroup = g
+            mingroup.values.append(d)
+            error += mindist
+
+        delta = abs(error - error_old)
+        error_old = error
+        print(f'cycle {cycle} error: {error:.1f}\t{delta:.8g}')
+        if delta < 0.001:
+            break
+        for g in group:
+            # recalculate centroids
+            centroid = g.get_centroid()
+            print(f'{g.id}\t{len(g.values)}\t{centroid}')
+            g.values = []
+
 
     exit(0)
