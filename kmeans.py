@@ -3,6 +3,9 @@ simple kmeans clustering on latent representation
 
 Michael Gribskov     31 March 2025
 ================================================================================================="""
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.cluster import KMeans
 
 
 class Group:
@@ -71,48 +74,17 @@ if __name__ == '__main__':
     data = []
     for line in datain:
         field = line.rstrip().split()
-        item = {'id': field[0], 'value': [float(v) for v in field[1:]]}
+        item = [float(v) for v in field[1:]]
         data.append(item)
 
+    datamat = np.array(data)
     print(f'values read from {datafile}: {len(data)}')
 
-    # assign initial centroids from data points
-    step = int(len(data) / k)
-    pos = 0
-    for g in group:
-        g.centroid = data[pos]['value']
-        pos += step
-
-    error_old = 10000000000000
-    delta = 1.0
-    cycle = 0
-    while delta > 0.001:
-        cycle += 1
-        print(f'\ncycle {cycle}')
-        error = 0
-
-        # assign points to centroids
-        for d in data:
-            mindist = 10000
-            mingroup = group[0]
-            for g in group:
-                dist = g.distance(d)
-                if dist < mindist:
-                    mindist = dist
-                    mingroup = g
-            mingroup.values.append(d)
-            error += mindist
-
-        delta = abs(error - error_old)
-        error_old = error
-        print(f'cycle {cycle} error: {error:.1f}\t{delta:.8g}')
-        if delta < 0.001:
-            break
-        for g in group:
-            # recalculate centroids
-            centroid = g.get_centroid()
-            print(f'{g.id}\t{len(g.values)}\t{centroid}')
-            g.values = []
-
+    kmeans = KMeans(n_clusters=7, init="k-means++", n_init=100, verbose=2)
+    kmeans.fit(datamat)
+    labels = kmeans.labels_
+    centers = kmeans.cluster_centers_
+    print(f'{labels}\n{centers}')
+    print(f'error: {kmeans.inertia_:.2f}')
 
     exit(0)
