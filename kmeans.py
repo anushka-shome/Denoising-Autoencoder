@@ -49,7 +49,7 @@ def plot(X, labels, probabilities=None, parameters=None, ground_truth=False, ax=
 # --------------------------------------------------------------------------------------------------
 if __name__ == '__main__':
 
-    k = 6
+    k = 10
 
     # read labels
     rownames = []
@@ -77,7 +77,7 @@ if __name__ == '__main__':
     label.close()
 
     # read data
-    datafile = 'data/latent2.txt'
+    datafile = 'data/latent.out'
     datain = open(datafile, 'r')
     data = []
     for line in datain:
@@ -100,7 +100,7 @@ if __name__ == '__main__':
 
     # kmeans
 
-    kmeans = KMeans(n_clusters=7, init="k-means++", n_init=100, verbose=2)
+    kmeans = KMeans(n_clusters=k, init="k-means++", n_init=100, verbose=2)
     kmeans.fit(datamat)
     labels = kmeans.labels_
     centers = kmeans.cluster_centers_
@@ -112,14 +112,16 @@ if __name__ == '__main__':
         print(f'{origlabel[g]}\t{g}')
 
     # Plot the data points and cluster centers
+    dim = [0,1,2]
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
-    scatter = ax.scatter(datamat[:, 1], datamat[:, 2], datamat[:, 3], c=rownames, cmap='Dark2')
-    ax.scatter(centers[:, 1], centers[:, 2], centers[:, 3], marker='x', color='black', s=50)
+    scatter = ax.scatter(datamat[:, dim[0]], datamat[:, dim[1]], datamat[:, dim[2]], c=rownames, cmap='Dark2', s=20,
+                         alpha=0.7)
+    ax.scatter(centers[:, dim[0]], centers[:, dim[1]], centers[:, dim[2]], marker='x', color='black', s=50)
     plt.title('K-Means Clustering')
-    ax.set_xlabel('Feature 1')
-    ax.set_ylabel('Feature 2')
-    ax.set_zlabel('Feature 3')
+    ax.set_xlabel(f'Feature {dim[0]}')
+    ax.set_ylabel(f'Feature {dim[1]}')
+    ax.set_zlabel(f'Feature {dim[2]}')
 
     # handles, labels = ax.get_legend_handles_labels()
     s = scatter.legend_elements()

@@ -71,48 +71,143 @@ class Autoencoder(nn.Module):
         return x
 
 
-def train_model(data: torch.Tensor, input_size: int, batch_size=16, epochs=1000):
+class Autoencoder3(nn.Module):
+    """=============================================================================================
+    Simple autoencoder from datacamp example
+    ============================================================================================="""
+
+    def __init__(self, input_size, hlayer_size, encoding_dim):
+        super(Autoencoder3, self).__init__()
+        self.encoder = nn.Sequential(
+            nn.Linear(input_size, 8),
+            nn.LeakyReLU(),
+            nn.Linear(8, 3),
+            nn.LeakyReLU(),
+            nn.Linear(3, 3),
+            nn.LeakyReLU()
+            )
+        self.decoder = nn.Sequential(
+            nn.Linear(3, 3),
+            nn.LeakyReLU(),
+            nn.Linear(3, 8),
+            nn.LeakyReLU(),
+            nn.Linear(8, input_size),
+            nn.LeakyReLU()
+            )
+
+    def forward(self, x):
+        x = self.encoder(x)
+        x = self.decoder(x)
+        return x
+
+
+# def train_modelx(data: torch.Tensor, input_size: int, batch_size=16, epochs=1000):
+#     # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+#     device = torch.device("cpu")
+#     print(f"Using device: {device}")  # Check if running on GPU or CPU
+#
+#     net = Network(input_size).to(device)
+#     # optimizer = optim.Adagrad(net.parameters(), lr=1e-3, weight_decay=1e-4)
+#     optimizer = optim.Adam(net.parameters(), lr=1e-3)
+#     loss_fn = nn.L1Loss(reduction='sum')
+#     # loss_fn = nn.BCEWithLogitsLoss(reduction='sum')
+#     losses = []
+#     dataset = torch.utils.data.TensorDataset(data, data)  # input and target are the same
+#     dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True)
+#     print("Before epochs")
+#     loss_min = 100000000
+#     for epoch in range(epochs):
+#         print(f"epoch: {epoch}", end='\t')
+#         epoch_loss = 0
+#         batch_num = 1
+#         for batch in dataloader:
+#             # print(f"batch: {batch_num}")
+#             batch_num += 1
+#             batch = batch[0].to(device)
+#             net.zero_grad()
+#
+#             # Pass batch through
+#             output = net(batch)
+#
+#             # Get Loss + Backprop
+#             loss = loss_fn(output, batch)
+#             loss_min = min(loss_min, loss)
+#             losses.append(loss)
+#             loss.backward()
+#             optimizer.step()
+#             epoch_loss += loss.item()
+#
+#         losses.append(epoch_loss / len(dataloader))
+#         if epoch % 1 == 0:
+#             print(f"Loss: {loss:8.1f}\t   min: {loss_min:8.1f}")
+#             # torch.save(net.state_dict(), "model2.pth")
+#
+#     torch.save(net.state_dict(), "model2.pth")
+#     return net, losses
+
+
+def train_model_batch(data: torch.Tensor, input_size: int, batch_size=100, epochs=5000):
+    """---------------------------------------------------------------------------------------------
+    optimizers and loss functions:
+    optimizer = optim.Adagrad(net.parameters(), lr=1e-3, weight_decay=1e-4)
+    optimizer = optim.Adam(net.parameters(), lr=5e-3)
+    loss_fn = nn.BCEWithLogitsLoss(reduction='sum')
+    oss_fn = nn.MSELoss(reduction='sum')
+    loss_fn = nn.L1Loss(reduction='sum')
+    loss_fn = nn.HuberLoss(reduction='sum')
+
+    :param data:
+    :param input_size:
+    :param batch_size:
+    :param epochs:
+    :return:
+    ---------------------------------------------------------------------------------------------"""
+    print(f"Setting up for training: epochs = {epochs}")
     # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     device = torch.device("cpu")
     print(f"Using device: {device}")  # Check if running on GPU or CPU
 
-    net = Network(input_size).to(device)
-    # optimizer = optim.Adagrad(net.parameters(), lr=1e-3, weight_decay=1e-4)
-    optimizer = optim.Adam(net.parameters(), lr=1e-2, weight_decay=1e-3)
-    loss_fn = nn.BCEWithLogitsLoss(reduction='sum')
-    losses = []
+    net = Autoencoder(input_size, 9, 3)
+    optimizer = optim.Adam(net.parameters(), lr=5e-3)
+    loss_fn = nn.L1Loss(reduction='sum')
     dataset = torch.utils.data.TensorDataset(data, data)  # input and target are the same
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True)
-    print("Before epochs")
-    loss_min = 100000000
+
+    print(f'Begin training')
+    batch = next(iter(dataloader))
+    output = net(batch[0])
+    loss_init = loss_fn(output, batch[0])
+    loss_min = loss_init
+    loss_min_step = 0
+    lowest = None
     for epoch in range(epochs):
+        dataloader = torch.utils.data.DataLoader(dataset, shuffle=True)
         print(f"epoch: {epoch}", end='\t')
         epoch_loss = 0
-        batch_num = 1
+        batch_num = 0
         for batch in dataloader:
-            # print(f"batch: {batch_num}")
             batch_num += 1
             batch = batch[0].to(device)
             net.zero_grad()
 
-            # Pass batch through 
+            # forward
             output = net(batch)
 
-            # Get Loss + Backprop
+            # Backward pass and optimization
             loss = loss_fn(output, batch)
-            loss_min = min(loss_min, loss)
-            losses.append(loss)
             loss.backward()
             optimizer.step()
             epoch_loss += loss.item()
 
-        losses.append(epoch_loss / len(dataloader))
-        if epoch % 1 == 0:
-            print(f"Loss: {loss:8.1f}\t   min: {loss_min:8.1f}")
-            # torch.save(net.state_dict(), "model2.pth")
+            # minimum loss and epoch when it occurred
+            if loss < loss_min:
+                loss_min = loss
+                loss_min_step = epoch
+                lowest = net.encoder(data).detach().numpy()
 
-    torch.save(net.state_dict(), "model2.pth")
-    return net, losses
+            print(f"Loss: {loss:8.1f}\t   min: {loss_min:8.1f}/{loss_min_step}\t{100 * loss_min / loss_init:.3f}%")
+
+    return lowest
 
 
 def train_model_nobatch(data: torch.Tensor, input_size: int, epochs=500):
@@ -121,11 +216,13 @@ def train_model_nobatch(data: torch.Tensor, input_size: int, epochs=500):
     device = torch.device("cpu")
     print(f"Using device: {device}")  # Check if running on GPU or CPU
 
-    net = Autoencoder(input_size, 4,4)
+    net = Autoencoder(input_size, 9, 3)
     # optimizer = optim.Adagrad(net.parameters(), lr=1e-3, weight_decay=1e-4)
-    optimizer = optim.Adam(net.parameters(), lr=5e-2)
+    optimizer = optim.Adam(net.parameters(), lr=5e-3)
     # loss_fn = nn.BCEWithLogitsLoss(reduction='sum')
-    loss_fn = nn.MSELoss(reduction='sum')
+    # loss_fn = nn.MSELoss(reduction='sum')
+    loss_fn = nn.L1Loss(reduction='sum')
+    # loss_fn = nn.HuberLoss(reduction='sum')
     dataset = torch.utils.data.TensorDataset(data, data)  # input and target are the same
     dataloader = torch.utils.data.DataLoader(dataset, shuffle=True)
 
@@ -134,6 +231,7 @@ def train_model_nobatch(data: torch.Tensor, input_size: int, epochs=500):
     loss_init = loss_fn(output, data)
     loss_min = loss_init
     loss_min_step = 0
+    lowest = None
     for epoch in range(epochs):
         dataloader = torch.utils.data.DataLoader(dataset, shuffle=True)
         print(f"epoch: {epoch}", end='\t')
@@ -147,6 +245,7 @@ def train_model_nobatch(data: torch.Tensor, input_size: int, epochs=500):
         if loss < loss_min:
             loss_min = loss
             loss_min_step = epoch
+            lowest = net.encoder(data).detach().numpy()
 
         # Backward pass and optimization
         optimizer.zero_grad()
@@ -155,21 +254,32 @@ def train_model_nobatch(data: torch.Tensor, input_size: int, epochs=500):
 
         print(f"Loss: {loss:8.1f}\t   min: {loss_min:8.1f}/{loss_min_step}\t{100 * loss_min / loss_init:.3f}%")
 
-    out = output.detach().numpy()
-    return net.encoder(data).detach().numpy()
+    # out = output.detach().numpy()
+    # return net.encoder(data).detach().numpy()
+    return lowest
 
 
 def main():
-    df = pd.read_csv("data/binary_data.csv", header=None).T
+    df = pd.read_csv("data/binary.min4.csv", header=None, index_col=0)
+    df.drop('total', inplace=True)
+    df.drop(df.columns[[-1]], axis=1, inplace=True)
+    print(df)
+
     data = torch.tensor(df.values, dtype=torch.float32)
     input_size = data.shape[1]
-    hlayer_size = 4
-    encoded_data = train_model_nobatch(data, input_size, epochs=2000)
+    # encoded_data = train_model_nobatch(data, input_size, epochs=50000)
+    encoded_data = train_model_batch(data, input_size, batch_size=116, epochs=50)
+    latentfile = 'data/latent.out'
+    latent = open(latentfile, 'w')
     for i in range(len(encoded_data)):
-        print(f'{i}',end='')
+        print(f'{i}', end='')
+        latent.write(f'{i}')
         for value in encoded_data[i]:
             print(f'\t{value:.4f}', end='')
+            latent.write(f'\t{value:.4f}')
         print()
+        latent.write('\n')
+    latent.close()
     # print(net)
     # print(losses)
 
